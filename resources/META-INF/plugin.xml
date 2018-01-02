@@ -1,0 +1,22 @@
+<idea-plugin>
+  <id>com.your.company.unique.plugin.id</id>
+  <name>Styled Component Extract Refactor Plugin</name>
+  <version>1.0</version>
+  <vendor email="support@yourcompany.com" url="http://www.yourcompany.com">YourCompany</vendor>
+
+  <description><![CDATA[
+      Enter short description for your plugin here.<br>
+      <em>most HTML tags may be used</em>
+    ]]></description>
+
+  <idea-version since-build="145.0"/>
+  <depends>com.intellij.modules.platform</depends>
+  <extensions defaultExtensionNs="com.intellij">
+  </extensions>
+  <actions>
+    <group id="PublisSqlScript.SampleMenu" text="_Sample Menu" description="Sample menu">
+      <add-to-group group-id="ProjectViewPopupMenu" anchor="last"  />
+      <action id="PublisSqlScript.CreatePublishScript" class="ExtractStyledComponentHandler" text="Extract Styled Component" />
+    </group>
+  </actions>
+</idea-plugin>
