@@ -14,9 +14,9 @@
   <extensions defaultExtensionNs="com.intellij">
   </extensions>
   <actions>
-    <group id="PublisSqlScript.SampleMenu" text="_Sample Menu" description="Sample menu">
-      <add-to-group group-id="ProjectViewPopupMenu" anchor="last"  />
-      <action id="PublisSqlScript.CreatePublishScript" class="ExtractStyledComponentHandler" text="Extract Styled Component" />
-    </group>
+    <action id="ExtractStyledComponent" class="ExtractStyledComponentHandler" text="Extract Styled Component">
+      <add-to-group group-id="RefactoringMenu" anchor="last"/>
+      <keyboard-shortcut keymap="$default" first-keystroke="meta R" second-keystroke="S"/>
+    </action>
   </actions>
 </idea-plugin>

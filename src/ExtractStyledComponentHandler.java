@@ -3,11 +3,8 @@ import com.intellij.openapi.actionSystem.AnActionEvent;
 
 public class ExtractStyledComponentHandler extends AnAction {
 
-    public ExtractStyledComponentHandler() {
-        super("ExtractStyledComponentHandler");
-    }
-
-    public void actionPerformed(AnActionEvent event) {
-
+    @Override
+    public void actionPerformed(AnActionEvent e) {
+        // TODO: insert action logic here
     }
 }
