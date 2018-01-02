@@ -16,7 +16,11 @@
   <actions>
     <action id="ExtractStyledComponent" class="ExtractStyledComponentHandler" text="Extract Styled Component">
       <add-to-group group-id="RefactoringMenu" anchor="last"/>
-      <keyboard-shortcut keymap="$default" first-keystroke="meta R" second-keystroke="S"/>
+      <keyboard-shortcut keymap="$default" first-keystroke="ctrl alt S"/>
     </action>
+  <action id="ExtractReactComponent" class="ExtractStyledComponentHandler" text="Extract React Component">
+    <add-to-group group-id="RefactoringMenu" anchor="last"/>
+    <keyboard-shortcut keymap="$default" first-keystroke="ctrl alt R"/>
+  </action>
   </actions>
 </idea-plugin>
