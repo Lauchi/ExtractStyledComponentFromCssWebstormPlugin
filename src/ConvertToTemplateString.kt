@@ -8,6 +8,8 @@ import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiFileFactory
+import com.intellij.psi.impl.source.tree.PsiWhiteSpaceImpl
+import com.intellij.psi.util.PsiTreeUtil
 
 /**
  * Created by Juan on 22/06/2016
@@ -27,27 +29,49 @@ internal class ConvertToTemplateString : AnAction("Convert to template string") 
             psiFile = PsiDocumentManager.getInstance(project).getPsiFile(document)
         }
 
-        var psiElement: PsiElement? = null
+        var jsxElement: PsiElement? = null
         if (psiFile != null && caret != null) {
-            psiElement = psiFile.findElementAt(caret.offset)
+            val psiElement = psiFile.findElementAt(caret.offset)
+            jsxElement = psiElement?.parent
         }
 
-        if (psiElement != null) {
-            replaceHtmlElementWithStyledTag(project, psiFile, psiElement)
-            addStyledDefinitionAtEnd(psiElement, project, psiFile)
+        if (jsxElement != null) {
+            replaceHtmlElementWithStyledTag(project, psiFile, jsxElement)
+            addStyledDefinitionAtEnd(jsxElement, project, psiFile)
+        }
+    }
+
+    private fun replaceHtmlElementWithStyledTag(project: Project?, psiFile: PsiFile?, psiElement: PsiElement) {
+        val newStyledComponentTagOpening = "fkt"
+        val newStyledComponentTagClosing = "fkt"
+
+        val styledComponentOpening = PsiFileFactory.getInstance(project!!).createFileFromText(newStyledComponentTagOpening, psiFile!!)
+        val styledComponentClosing = PsiFileFactory.getInstance(project!!).createFileFromText(newStyledComponentTagClosing, psiFile!!)
+
+        var runnable: Runnable? = null
+        if (styledComponentOpening != null && styledComponentClosing != null) {
+            runnable = Runnable {
+                val firstChild = psiElement.firstChild.nextSibling
+                firstChild.replace(styledComponentOpening)
+                val lastChild = psiElement.lastChild.prevSibling
+                lastChild.replace(styledComponentClosing)
+            }
+        }
+        if (runnable != null) {
+            WriteCommandAction.runWriteCommandAction(project, runnable)
         }
     }
 
     private fun addStyledDefinitionAtEnd(psiElement: PsiElement, project: Project?, psiFile: PsiFile?) {
-        val htmlElement = psiElement.text
-        val styledComponentDefinition = "const fkt = styled.$htmlElement`\n\n`;"
+        val htmlElement = psiElement.firstChild.nextSibling.text
+        val styledComponentDefinition = "\n\nconst fkt = styled.$htmlElement`\n\n`;"
 
         val styledComponentDefinitionPsi = PsiFileFactory.getInstance(project).createFileFromText(styledComponentDefinition, psiFile!!)
 
         var runnable: Runnable? = null
         if (styledComponentDefinitionPsi != null) {
-            val lastElement = psiFile.node.lastChildNode.psi
             runnable = Runnable {
+                val lastElement = psiFile.node.lastChildNode.psi
                 psiFile.addAfter(styledComponentDefinitionPsi, lastElement)
             }
         }
@@ -56,17 +80,4 @@ internal class ConvertToTemplateString : AnAction("Convert to template string") 
         }
     }
 
-    private fun replaceHtmlElementWithStyledTag(project: Project?, psiFile: PsiFile?, psiElement: PsiElement) {
-        val newStyledComponentTag = "<fkt/>"
-
-        val styledComponent = PsiFileFactory.getInstance(project!!).createFileFromText(newStyledComponentTag, psiFile!!)
-
-        var runnable: Runnable? = null
-        if (styledComponent != null) {
-            runnable = Runnable { psiElement.replace(styledComponent) }
-        }
-        if (runnable != null) {
-            WriteCommandAction.runWriteCommandAction(project, runnable)
-        }
-    }
 }
