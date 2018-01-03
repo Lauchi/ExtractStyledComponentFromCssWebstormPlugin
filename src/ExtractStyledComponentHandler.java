@@ -22,7 +22,8 @@ public class ExtractStyledComponentHandler extends AnAction {
 
         new WriteCommandAction.Simple(e.getProject(), openedFilePsi.getContainingFile()) {
             public void run() {
-                openedFilePsi.add(commonParent);
+                PsiElement lastElement = openedFilePsi.getNode().getLastChildNode().getPsi();
+                openedFilePsi.addAfter(commonParent, lastElement);
             }
         }.execute();
     }
