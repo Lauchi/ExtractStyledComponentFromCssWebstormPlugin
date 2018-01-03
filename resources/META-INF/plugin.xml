@@ -18,7 +18,7 @@
       <add-to-group group-id="IntroduceActionsGroup" anchor="last"/>
       <keyboard-shortcut keymap="$default" first-keystroke="ctrl alt S"/>
     </action>
-  <action id="ExtractReactComponent" class="ExtractStyledComponentHandler" text="Extract React Component">
+  <action id="ExtractReactComponent" class="ConvertToTemplateString" text="Extract React Component">
     <add-to-group group-id="IntroduceActionsGroup" anchor="last"/>
     <keyboard-shortcut keymap="$default" first-keystroke="ctrl alt R"/>
   </action>
