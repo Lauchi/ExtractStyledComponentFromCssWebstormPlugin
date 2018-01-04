@@ -9,7 +9,7 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiFileFactory
 
-internal class ConvertToStyledComponent : AnAction("Convert to template string") {
+internal class ConvertToStyledComponent : AnAction("Convert to a styled component") {
 
     override fun actionPerformed(event: AnActionEvent) {
         val project = event.getData(PlatformDataKeys.PROJECT)
@@ -32,9 +32,8 @@ internal class ConvertToStyledComponent : AnAction("Convert to template string")
 
         if (jsxElement != null) {
             val styledComponentClassName = getClassName(jsxElement)
-            val htmlElement = jsxElement.firstChild.nextSibling.text
             replaceHtmlElementWithStyledTag(project, psiFile, jsxElement, styledComponentClassName)
-            addStyledDefinitionAtEnd(project, psiFile, htmlElement, styledComponentClassName)
+            addStyledDefinitionAtEnd(project!!, psiFile!!, jsxElement, styledComponentClassName)
         }
     }
 
@@ -46,11 +45,8 @@ internal class ConvertToStyledComponent : AnAction("Convert to template string")
                 val firstChild1 = firstChild?.nextSibling
                 val nextSibling2 = firstChild1?.nextSibling
                 val nextSibling3 = nextSibling2?.firstChild
-                val nextSibling4= nextSibling3?.firstChild
-                val nextSibling5 = nextSibling4?.firstChild
-                val nextSibling6 = nextSibling5?.nextSibling
-                val nextSibling7= nextSibling6?.firstChild
-                val resultRaw = nextSibling7?.text!!
+                val nextSibling4= nextSibling3?.nextSibling
+                val resultRaw = nextSibling4?.text!!
                 result = resultRaw.replace("\'", "").replace("\"", "");
             }
         }
@@ -86,8 +82,10 @@ internal class ConvertToStyledComponent : AnAction("Convert to template string")
         return result
     }
 
-    private fun addStyledDefinitionAtEnd(project: Project?, psiFile: PsiFile?, htmlElement: String, newTag: String) {
-        val styledComponentDefinition = "\n\nconst $newTag = styled.$htmlElement`\n\n`;"
+    private fun addStyledDefinitionAtEnd(project: Project, psiFile: PsiFile, jsxElement: PsiElement, newTag: String) {
+        val htmlElement = jsxElement.firstChild.nextSibling.text
+        val extractedCss = getCssFrom(jsxElement)
+        val styledComponentDefinition = "\n\nconst $newTag = styled.$htmlElement`\n$extractedCss\n`;"
 
         val styledComponentDefinitionPsi = PsiFileFactory.getInstance(project).createFileFromText(styledComponentDefinition, psiFile!!)
 
@@ -101,6 +99,10 @@ internal class ConvertToStyledComponent : AnAction("Convert to template string")
         if (runnable != null) {
             WriteCommandAction.runWriteCommandAction(project, runnable)
         }
+    }
+
+    private fun getCssFrom(jsxElement: PsiElement): String {
+        return "border: 1px solid black"
     }
 
 }
