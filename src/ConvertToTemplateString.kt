@@ -1,3 +1,4 @@
+import com.intellij.json.psi.JsonStringLiteral
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.PlatformDataKeys
@@ -36,25 +37,42 @@ internal class ConvertToTemplateString : AnAction("Convert to template string") 
         }
 
         if (jsxElement != null) {
-            replaceHtmlElementWithStyledTag(project, psiFile, jsxElement)
-            addStyledDefinitionAtEnd(jsxElement, project, psiFile)
+            val styledComponentClassName = getClassName(jsxElement)
+            val htmlElement = jsxElement.firstChild.nextSibling.text
+            replaceHtmlElementWithStyledTag(project, psiFile, jsxElement, styledComponentClassName)
+            addStyledDefinitionAtEnd(project, psiFile, htmlElement, styledComponentClassName)
         }
     }
 
-    private fun replaceHtmlElementWithStyledTag(project: Project?, psiFile: PsiFile?, psiElement: PsiElement) {
-        val newStyledComponentTagOpening = "fkt"
-        val newStyledComponentTagClosing = "fkt"
+    private fun getClassName(jsxElement: PsiElement): String {
+        var result = ""
+        jsxElement.children.forEach{child ->
+            if (child.firstChild?.text == "className") {
+                val firstChild = child.firstChild
+                val firstChild1 = firstChild?.nextSibling
+                val nextSibling2 = firstChild1?.nextSibling
+                val nextSibling3 = nextSibling2?.firstChild
+                val nextSibling4= nextSibling3?.firstChild
+                val nextSibling5 = nextSibling4?.firstChild
+                val nextSibling6 = nextSibling5?.nextSibling
+                val nextSibling7= nextSibling6?.firstChild
+                val resultRaw = nextSibling7?.text!!
+                result = resultRaw.replace("\'", "").replace("\"", "");
+            }
+        }
+        return result
+    }
 
-        val styledComponentOpening = PsiFileFactory.getInstance(project!!).createFileFromText(newStyledComponentTagOpening, psiFile!!)
-        val styledComponentClosing = PsiFileFactory.getInstance(project!!).createFileFromText(newStyledComponentTagClosing, psiFile!!)
+    private fun replaceHtmlElementWithStyledTag(project: Project?, psiFile: PsiFile?, psiElement: PsiElement, newTag: String) {
+        val styledComponentTag = PsiFileFactory.getInstance(project!!).createFileFromText(newTag, psiFile!!)
 
         var runnable: Runnable? = null
-        if (styledComponentOpening != null && styledComponentClosing != null) {
+        if (styledComponentTag != null) {
             runnable = Runnable {
-                val firstChild = psiElement.firstChild.nextSibling
-                firstChild.replace(styledComponentOpening)
-                val lastChild = psiElement.lastChild.prevSibling
-                lastChild.replace(styledComponentClosing)
+                val startTag = psiElement.firstChild.nextSibling
+                startTag.replace(styledComponentTag)
+                val endTag = psiElement.lastChild.prevSibling
+                endTag.replace(styledComponentTag)
             }
         }
         if (runnable != null) {
@@ -62,9 +80,8 @@ internal class ConvertToTemplateString : AnAction("Convert to template string") 
         }
     }
 
-    private fun addStyledDefinitionAtEnd(psiElement: PsiElement, project: Project?, psiFile: PsiFile?) {
-        val htmlElement = psiElement.firstChild.nextSibling.text
-        val styledComponentDefinition = "\n\nconst fkt = styled.$htmlElement`\n\n`;"
+    private fun addStyledDefinitionAtEnd(project: Project?, psiFile: PsiFile?, htmlElement: String, newTag: String) {
+        val styledComponentDefinition = "\n\nconst $newTag = styled.$htmlElement`\n\n`;"
 
         val styledComponentDefinitionPsi = PsiFileFactory.getInstance(project).createFileFromText(styledComponentDefinition, psiFile!!)
 
