@@ -32,21 +32,26 @@ internal class ConvertToStyledComponent : AnAction("Convert to a styled componen
 
         if (jsxElement != null) {
             val styledComponentClassName = getClassName(jsxElement)
-            replaceHtmlElementWithStyledTag(project, psiFile, jsxElement, styledComponentClassName)
             addStyledDefinitionAtEnd(project!!, psiFile!!, jsxElement, styledComponentClassName)
+            replaceHtmlElementWithStyledTag(project, psiFile, jsxElement, styledComponentClassName)
         }
     }
 
     private fun getClassName(jsxElement: PsiElement): String {
-        val classNameTag = getClassNameTag(jsxElement)
+        val classNameValue = getClassNameNameElement(jsxElement)
+        val resultRaw = classNameValue?.text!!
+        val result = resultRaw.replace("\'", "").replace("\"", "")
+        return result
+    }
+
+    private fun getClassNameNameElement(classNameTag: PsiElement?): PsiElement? {
+        val classNameTag = getClassNameTag(classNameTag!!)
         val firstChild = classNameTag?.firstChild
         val firstChild1 = firstChild?.nextSibling
         val nextSibling2 = firstChild1?.nextSibling
         val nextSibling3 = nextSibling2?.firstChild
-        val nextSibling4= nextSibling3?.nextSibling
-        val resultRaw = nextSibling4?.text!!
-        val result = resultRaw.replace("\'", "").replace("\"", "")
-        return result
+        val nextSibling4 = nextSibling3?.nextSibling
+        return nextSibling4
     }
 
     private fun replaceHtmlElementWithStyledTag(project: Project?, psiFile: PsiFile?, psiElement: PsiElement, newTag: String) {
@@ -98,7 +103,31 @@ internal class ConvertToStyledComponent : AnAction("Convert to a styled componen
     }
 
     private fun getCssFrom(jsxElement: PsiElement): String {
+        val classNameReference = getClassNameReference(jsxElement)
+        val className = getClassNameNameElement(jsxElement)?.text!!
+        val reference = classNameReference?.reference
+
+        val resolve = reference?.resolve()
+
+        val cssFile = resolve?.containingFile?.firstChild
+
+        val cssClassFromFile = getCssClassFromFile(cssFile, className)
         return "border: 1px solid black"
+    }
+
+    private fun getCssClassFromFile(cssFile: PsiElement?, className: String): PsiElement? {
+        cssFile?.firstChild?.firstChild?.children?.forEach { cssRuleSet ->
+            System.out.println("1" + cssRuleSet.text )
+        }
+        return null
+    }
+
+    private fun getClassNameReference(jsxElement: PsiElement): PsiElement? {
+        val classNameTag = getClassNameTag(jsxElement!!)
+        val firstChild = classNameTag?.firstChild
+        val firstChild1 = firstChild?.nextSibling
+        val nextSibling2 = firstChild1?.nextSibling
+        return nextSibling2
     }
 
 }
