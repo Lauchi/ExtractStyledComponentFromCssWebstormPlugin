@@ -38,18 +38,14 @@ internal class ConvertToStyledComponent : AnAction("Convert to a styled componen
     }
 
     private fun getClassName(jsxElement: PsiElement): String {
-        var result = ""
-        jsxElement.children.forEach{child ->
-            if (child.firstChild?.text == "className") {
-                val firstChild = child.firstChild
-                val firstChild1 = firstChild?.nextSibling
-                val nextSibling2 = firstChild1?.nextSibling
-                val nextSibling3 = nextSibling2?.firstChild
-                val nextSibling4= nextSibling3?.nextSibling
-                val resultRaw = nextSibling4?.text!!
-                result = resultRaw.replace("\'", "").replace("\"", "");
-            }
-        }
+        val classNameTag = getClassNameTag(jsxElement)
+        val firstChild = classNameTag?.firstChild
+        val firstChild1 = firstChild?.nextSibling
+        val nextSibling2 = firstChild1?.nextSibling
+        val nextSibling3 = nextSibling2?.firstChild
+        val nextSibling4= nextSibling3?.nextSibling
+        val resultRaw = nextSibling4?.text!!
+        val result = resultRaw.replace("\'", "").replace("\"", "")
         return result
     }
 
