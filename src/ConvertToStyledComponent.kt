@@ -1,4 +1,3 @@
-import com.intellij.json.psi.JsonStringLiteral
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.PlatformDataKeys
@@ -9,13 +8,8 @@ import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiFileFactory
-import com.intellij.psi.impl.source.tree.PsiWhiteSpaceImpl
-import com.intellij.psi.util.PsiTreeUtil
 
-/**
- * Created by Juan on 22/06/2016
- */
-internal class ConvertToTemplateString : AnAction("Convert to template string") {
+internal class ConvertToStyledComponent : AnAction("Convert to template string") {
 
     override fun actionPerformed(event: AnActionEvent) {
         val project = event.getData(PlatformDataKeys.PROJECT)
@@ -69,6 +63,8 @@ internal class ConvertToTemplateString : AnAction("Convert to template string") 
         var runnable: Runnable? = null
         if (styledComponentTag != null) {
             runnable = Runnable {
+                val classNameTag = getClassNameTag(psiElement)
+                classNameTag?.delete()
                 val startTag = psiElement.firstChild.nextSibling
                 startTag.replace(styledComponentTag)
                 val endTag = psiElement.lastChild.prevSibling
@@ -78,6 +74,16 @@ internal class ConvertToTemplateString : AnAction("Convert to template string") 
         if (runnable != null) {
             WriteCommandAction.runWriteCommandAction(project, runnable)
         }
+    }
+
+    private fun getClassNameTag(psiElement: PsiElement): PsiElement? {
+        var result: PsiElement? = null
+        psiElement.children.forEach{child ->
+            if (child.firstChild?.text == "className") {
+                result = child
+            }
+        }
+        return result
     }
 
     private fun addStyledDefinitionAtEnd(project: Project?, psiFile: PsiFile?, htmlElement: String, newTag: String) {
