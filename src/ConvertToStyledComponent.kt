@@ -42,7 +42,8 @@ internal class ConvertToStyledComponent : AnAction("Convert to a styled componen
 
     private fun getClassNames(jsxElement: PsiElement): List<String> {
         val className = getClassNameAttribute(jsxElement)
-        val resultRaw = className?.text!!
+        var resultRaw = className?.text
+        if (resultRaw == null) resultRaw = getHtmlTag(jsxElement)
         return resultRaw.replace("\'", "").replace("\"", "").split(" ")
     }
 
@@ -87,13 +88,17 @@ internal class ConvertToStyledComponent : AnAction("Convert to a styled componen
     }
 
     private fun addStyledDefinitionAtEnd(project: Project, psiFile: PsiFile, jsxElement: PsiElement, classNames: List<String>) {
-        val htmlElement = jsxElement.firstChild.nextSibling.text
+        val htmlElement = getHtmlTag(jsxElement)
         val extractedCssList = getCssRulesAsBlockStringFrom(jsxElement)
 
         var lastClassName = ""
         for (i in classNames.indices) {
             val className = classNames[i].capitalize()
-            val extractedCss = extractedCssList[i]
+            var extractedCss = ""
+            if (extractedCssList.size < i) {
+                extractedCss = extractedCssList[i]
+            }
+
             val styledComponentDefinition = if (i == 0) {
                 "\n\nconst $className = styled.$htmlElement`\n$extractedCss`;"
             } else {
@@ -116,24 +121,30 @@ internal class ConvertToStyledComponent : AnAction("Convert to a styled componen
         }
     }
 
+    private fun getHtmlTag(jsxElement: PsiElement): String {
+        return jsxElement.firstChild.nextSibling.text
+    }
+
     private fun getCssRulesAsBlockStringFrom(jsxElement: PsiElement): List<String> {
         val classNameReference = getClassNameReferences(jsxElement)
-        val classNames = getClassNameAttribute(jsxElement)?.text!!.split(" ")
+        val classNames = getClassNameAttribute(jsxElement)?.text?.split(" ")
 
         var stringList: ArrayList<String> = arrayListOf()
-        for (i in classNames.indices) {
-            val psiReference = classNameReference?.references!![i]
-            val cssClass = psiReference?.resolve()
+        if (classNames != null) {
+            for (i in classNames.indices) {
+                val psiReference = classNameReference?.references!![i]
+                val cssClass = psiReference?.resolve()
 
-            var declarationStrings = ""
-            if (cssClass is CssClass) {
-                val cssRuleSet = getCssClassFromFile(cssClass, classNames[i])
-                cssRuleSet?.block?.declarations?.forEach { dec ->
-                    val rule = dec.text
-                    declarationStrings += "\t$rule;\n"
+                var declarationStrings = ""
+                if (cssClass is CssClass) {
+                    val cssRuleSet = getCssClassFromFile(cssClass, classNames[i])
+                    cssRuleSet?.block?.declarations?.forEach { dec ->
+                        val rule = dec.text
+                        declarationStrings += "\t$rule;\n"
+                    }
                 }
+                stringList.add(declarationStrings)
             }
-            stringList.add(declarationStrings)
         }
 
         return stringList
