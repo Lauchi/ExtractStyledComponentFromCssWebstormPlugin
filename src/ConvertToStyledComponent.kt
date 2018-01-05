@@ -8,7 +8,10 @@ import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiFileFactory
+import com.intellij.psi.css.CssClass
 import com.intellij.psi.css.CssFile
+import com.intellij.psi.css.CssRuleset
+import com.intellij.psi.css.CssStylesheet
 
 internal class ConvertToStyledComponent : AnAction("Convert to a styled component") {
 
@@ -73,6 +76,7 @@ internal class ConvertToStyledComponent : AnAction("Convert to a styled componen
     }
 
     private fun getClassNameTag(psiElement: PsiElement): PsiElement? {
+
         var result: PsiElement? = null
         psiElement.children.forEach{child ->
             if (child.firstChild?.text == "className") {
@@ -108,6 +112,15 @@ internal class ConvertToStyledComponent : AnAction("Convert to a styled componen
 
         val resolve = reference?.resolve()
 
+        if (resolve is CssStylesheet) {
+            System.out.println("2" + resolve)
+        }
+        if (resolve is CssRuleset) {
+            System.out.println("2" + resolve)
+        }
+        if (resolve is CssClass) {
+            System.out.println("2" + resolve.text)
+        }
         val cssFile = resolve?.containingFile
 
         val cssClassFromFile = getCssClassFromFile(cssFile, className)
@@ -120,7 +133,10 @@ internal class ConvertToStyledComponent : AnAction("Convert to a styled componen
             val stylesheet = cssFile.stylesheet
             val rulesets = stylesheet.rulesets
             rulesets.forEach { rule ->
-                val selectors = rule.selectors
+                rule.selectors.forEach { sel ->
+                    System.out.println("2" + sel.presentableText)
+                }
+                System.out.println("2" + rule.block?.text)
             }
         }
 

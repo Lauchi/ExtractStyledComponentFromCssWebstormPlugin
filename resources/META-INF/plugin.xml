@@ -9,8 +9,10 @@
       <em>most HTML tags may be used</em>
     ]]></description>
 
-  <idea-version since-build="145.0"/>
-  <depends>com.intellij.modules.platform</depends>
+  <idea-version since-build="163"/>
+  <depends>com.intellij.modules.lang</depends>
+  <depends>com.intellij.css</depends>
+
   <extensions defaultExtensionNs="com.intellij">
   </extensions>
   <actions>
