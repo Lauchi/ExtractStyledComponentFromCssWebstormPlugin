@@ -34,19 +34,19 @@ internal class ConvertToStyledComponent : AnAction("Convert to a styled componen
         }
 
         if (jsxElement != null) {
-            val styledComponentClassName = getClassName(jsxElement)
-            addStyledDefinitionAtEnd(project!!, psiFile!!, jsxElement, styledComponentClassName)
-            replaceHtmlElementWithStyledTag(project, psiFile, jsxElement, styledComponentClassName)
+            val styledComponentClassNames = getClassNames(jsxElement)
+            addStyledDefinitionAtEnd(project!!, psiFile!!, jsxElement, styledComponentClassNames)
+            replaceHtmlElementWithStyledTag(project, psiFile, jsxElement, styledComponentClassNames)
         }
     }
 
-    private fun getClassName(jsxElement: PsiElement): String {
-        val classNameValue = getClassNameNameElement(jsxElement)
-        val resultRaw = classNameValue?.text!!
-        return resultRaw.replace("\'", "").replace("\"", "")
+    private fun getClassNames(jsxElement: PsiElement): List<String> {
+        val className = getClassNameAttribute(jsxElement)
+        val resultRaw = className?.text!!
+        return resultRaw.replace("\'", "").replace("\"", "").split(" ")
     }
 
-    private fun getClassNameNameElement(classNameTag: PsiElement?): PsiElement? {
+    private fun getClassNameAttribute(classNameTag: PsiElement?): PsiElement? {
         val classNameTag = getClassNameTag(classNameTag!!)
         val firstChild = classNameTag?.firstChild
         val firstChild1 = firstChild?.nextSibling
@@ -55,7 +55,8 @@ internal class ConvertToStyledComponent : AnAction("Convert to a styled componen
         return nextSibling3?.nextSibling
     }
 
-    private fun replaceHtmlElementWithStyledTag(project: Project?, psiFile: PsiFile?, psiElement: PsiElement, newTag: String) {
+    private fun replaceHtmlElementWithStyledTag(project: Project?, psiFile: PsiFile?, psiElement: PsiElement, classNames: List<String>) {
+        val newTag = classNames.map { name -> name.capitalize() }.last()
         val styledComponentTag = PsiFileFactory.getInstance(project!!).createFileFromText(newTag, psiFile!!)
 
         var runnable: Runnable? = null
@@ -85,47 +86,61 @@ internal class ConvertToStyledComponent : AnAction("Convert to a styled componen
         return result
     }
 
-    private fun addStyledDefinitionAtEnd(project: Project, psiFile: PsiFile, jsxElement: PsiElement, newTag: String) {
+    private fun addStyledDefinitionAtEnd(project: Project, psiFile: PsiFile, jsxElement: PsiElement, classNames: List<String>) {
         val htmlElement = jsxElement.firstChild.nextSibling.text
-        val extractedCss = getCssFrom(jsxElement)
-        val styledComponentDefinition = "\n\nconst $newTag = styled.$htmlElement`\n$extractedCss`;"
+        val extractedCssList = getCssRulesAsBlockStringFrom(jsxElement)
 
-        val styledComponentDefinitionPsi = PsiFileFactory.getInstance(project).createFileFromText(styledComponentDefinition, psiFile!!)
-
-        var runnable: Runnable? = null
-        if (styledComponentDefinitionPsi != null) {
-            runnable = Runnable {
-                val lastElement = psiFile.node.lastChildNode.psi
-                psiFile.addAfter(styledComponentDefinitionPsi, lastElement)
+        var lastClassName = ""
+        for (i in classNames.indices) {
+            val className = classNames[i].capitalize()
+            val extractedCss = extractedCssList[i]
+            val styledComponentDefinition = if (i == 0) {
+                "\n\nconst $className = styled.$htmlElement`\n$extractedCss`;"
+            } else {
+                "\n\nconst $className = $lastClassName.extend`\n$extractedCss`;"
             }
-        }
-        if (runnable != null) {
-            WriteCommandAction.runWriteCommandAction(project, runnable)
+
+            val styledComponentDefinitionPsi = PsiFileFactory.getInstance(project).createFileFromText(styledComponentDefinition, psiFile!!)
+
+            var runnable: Runnable? = null
+            if (styledComponentDefinitionPsi != null) {
+                runnable = Runnable {
+                    val lastElement = psiFile.node.lastChildNode.psi
+                    psiFile.addAfter(styledComponentDefinitionPsi, lastElement)
+                }
+            }
+            if (runnable != null) {
+                WriteCommandAction.runWriteCommandAction(project, runnable)
+            }
+            lastClassName = className
         }
     }
 
-    private fun getCssFrom(jsxElement: PsiElement): String {
-        val classNameReference = getClassNameReference(jsxElement)
-        val className = getClassNameNameElement(jsxElement)?.text!!
-        val reference = classNameReference?.reference
+    private fun getCssRulesAsBlockStringFrom(jsxElement: PsiElement): List<String> {
+        val classNameReference = getClassNameReferences(jsxElement)
+        val classNames = getClassNameAttribute(jsxElement)?.text!!.split(" ")
 
-        val cssClass = reference?.resolve()
+        var stringList: ArrayList<String> = arrayListOf()
+        for (i in classNames.indices) {
+            val psiReference = classNameReference?.references!![i]
+            val cssClass = psiReference?.resolve()
 
-        if (cssClass is CssClass) {
-            val cssRuleSet = getCssClassFromFile(cssClass, className)
             var declarationStrings = ""
-            cssRuleSet?.block?.declarations?.forEach { dec ->
-                val rule = dec.text
-                declarationStrings += "\t$rule;\n"
+            if (cssClass is CssClass) {
+                val cssRuleSet = getCssClassFromFile(cssClass, classNames[i])
+                cssRuleSet?.block?.declarations?.forEach { dec ->
+                    val rule = dec.text
+                    declarationStrings += "\t$rule;\n"
+                }
             }
-            return declarationStrings
+            stringList.add(declarationStrings)
         }
 
-        return ""
+        return stringList
     }
 
-    private fun getCssClassFromFile(cssClass: CssClass?, className: String): CssRuleset? {
-        val cssFile = cssClass?.containingFile
+    private fun getCssClassFromFile(cssClassReference: CssClass?, className: String): CssRuleset? {
+        val cssFile = cssClassReference?.containingFile
         var ruleSet: CssRuleset? = null
         if (cssFile is CssFile) {
             val stylesheet = cssFile.stylesheet
@@ -139,11 +154,10 @@ internal class ConvertToStyledComponent : AnAction("Convert to a styled componen
         return ruleSet
     }
 
-    private fun getClassNameReference(jsxElement: PsiElement): PsiElement? {
+    private fun getClassNameReferences(jsxElement: PsiElement): PsiElement? {
         val classNameTag = getClassNameTag(jsxElement!!)
         val firstChild = classNameTag?.firstChild
         val firstChild1 = firstChild?.nextSibling
         return firstChild1?.nextSibling
     }
-
 }
