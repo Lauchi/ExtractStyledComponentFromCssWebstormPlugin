@@ -8,7 +8,7 @@ import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiFileFactory
-import com.intellij.psi.css.StylesheetFile
+import com.intellij.psi.css.CssFile
 
 internal class ConvertToStyledComponent : AnAction("Convert to a styled component") {
 
@@ -41,8 +41,7 @@ internal class ConvertToStyledComponent : AnAction("Convert to a styled componen
     private fun getClassName(jsxElement: PsiElement): String {
         val classNameValue = getClassNameNameElement(jsxElement)
         val resultRaw = classNameValue?.text!!
-        val result = resultRaw.replace("\'", "").replace("\"", "")
-        return result
+        return resultRaw.replace("\'", "").replace("\"", "")
     }
 
     private fun getClassNameNameElement(classNameTag: PsiElement?): PsiElement? {
@@ -51,8 +50,7 @@ internal class ConvertToStyledComponent : AnAction("Convert to a styled componen
         val firstChild1 = firstChild?.nextSibling
         val nextSibling2 = firstChild1?.nextSibling
         val nextSibling3 = nextSibling2?.firstChild
-        val nextSibling4 = nextSibling3?.nextSibling
-        return nextSibling4
+        return nextSibling3?.nextSibling
     }
 
     private fun replaceHtmlElementWithStyledTag(project: Project?, psiFile: PsiFile?, psiElement: PsiElement, newTag: String) {
@@ -117,7 +115,8 @@ internal class ConvertToStyledComponent : AnAction("Convert to a styled componen
     }
 
     private fun getCssClassFromFile(cssFile: PsiFile?, className: String): PsiElement? {
-        if (cssFile is StylesheetFile) {
+
+        if (cssFile is CssFile) {
             val stylesheet = cssFile.stylesheet
             val rulesets = stylesheet.rulesets
             rulesets.forEach { rule ->
@@ -132,8 +131,7 @@ internal class ConvertToStyledComponent : AnAction("Convert to a styled componen
         val classNameTag = getClassNameTag(jsxElement!!)
         val firstChild = classNameTag?.firstChild
         val firstChild1 = firstChild?.nextSibling
-        val nextSibling2 = firstChild1?.nextSibling
-        return nextSibling2
+        return firstChild1?.nextSibling
     }
 
 }
