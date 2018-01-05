@@ -11,7 +11,6 @@ import com.intellij.psi.PsiFileFactory
 import com.intellij.psi.css.CssClass
 import com.intellij.psi.css.CssFile
 import com.intellij.psi.css.CssRuleset
-import com.intellij.psi.css.CssStylesheet
 
 internal class ConvertToStyledComponent : AnAction("Convert to a styled component") {
 
@@ -89,7 +88,7 @@ internal class ConvertToStyledComponent : AnAction("Convert to a styled componen
     private fun addStyledDefinitionAtEnd(project: Project, psiFile: PsiFile, jsxElement: PsiElement, newTag: String) {
         val htmlElement = jsxElement.firstChild.nextSibling.text
         val extractedCss = getCssFrom(jsxElement)
-        val styledComponentDefinition = "\n\nconst $newTag = styled.$htmlElement`\n$extractedCss\n`;"
+        val styledComponentDefinition = "\n\nconst $newTag = styled.$htmlElement`\n$extractedCss`;"
 
         val styledComponentDefinitionPsi = PsiFileFactory.getInstance(project).createFileFromText(styledComponentDefinition, psiFile!!)
 
@@ -110,37 +109,34 @@ internal class ConvertToStyledComponent : AnAction("Convert to a styled componen
         val className = getClassNameNameElement(jsxElement)?.text!!
         val reference = classNameReference?.reference
 
-        val resolve = reference?.resolve()
+        val cssClass = reference?.resolve()
 
-        if (resolve is CssStylesheet) {
-            System.out.println("2" + resolve)
+        if (cssClass is CssClass) {
+            val cssRuleSet = getCssClassFromFile(cssClass, className)
+            var declarationStrings = ""
+            cssRuleSet?.block?.declarations?.forEach { dec ->
+                val rule = dec.text
+                declarationStrings += "\t$rule;\n"
+            }
+            return declarationStrings
         }
-        if (resolve is CssRuleset) {
-            System.out.println("2" + resolve)
-        }
-        if (resolve is CssClass) {
-            System.out.println("2" + resolve.text)
-        }
-        val cssFile = resolve?.containingFile
 
-        val cssClassFromFile = getCssClassFromFile(cssFile, className)
-        return "border: 1px solid black"
+        return ""
     }
 
-    private fun getCssClassFromFile(cssFile: PsiFile?, className: String): PsiElement? {
-
+    private fun getCssClassFromFile(cssClass: CssClass?, className: String): CssRuleset? {
+        val cssFile = cssClass?.containingFile
+        var ruleSet: CssRuleset? = null
         if (cssFile is CssFile) {
             val stylesheet = cssFile.stylesheet
             val rulesets = stylesheet.rulesets
             rulesets.forEach { rule ->
                 rule.selectors.forEach { sel ->
-                    System.out.println("2" + sel.presentableText)
+                    if (sel.text == "." + className) ruleSet = rule
                 }
-                System.out.println("2" + rule.block?.text)
             }
         }
-
-        return null
+        return ruleSet
     }
 
     private fun getClassNameReference(jsxElement: PsiElement): PsiElement? {
