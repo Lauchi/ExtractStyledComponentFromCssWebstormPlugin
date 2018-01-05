@@ -8,6 +8,7 @@ import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiFileFactory
+import com.intellij.psi.css.StylesheetFile
 
 internal class ConvertToStyledComponent : AnAction("Convert to a styled component") {
 
@@ -109,16 +110,21 @@ internal class ConvertToStyledComponent : AnAction("Convert to a styled componen
 
         val resolve = reference?.resolve()
 
-        val cssFile = resolve?.containingFile?.firstChild
+        val cssFile = resolve?.containingFile
 
         val cssClassFromFile = getCssClassFromFile(cssFile, className)
         return "border: 1px solid black"
     }
 
-    private fun getCssClassFromFile(cssFile: PsiElement?, className: String): PsiElement? {
-        cssFile?.firstChild?.firstChild?.children?.forEach { cssRuleSet ->
-            System.out.println("1" + cssRuleSet.text )
+    private fun getCssClassFromFile(cssFile: PsiFile?, className: String): PsiElement? {
+        if (cssFile is StylesheetFile) {
+            val stylesheet = cssFile.stylesheet
+            val rulesets = stylesheet.rulesets
+            rulesets.forEach { rule ->
+                val selectors = rule.selectors
+            }
         }
+
         return null
     }
 
