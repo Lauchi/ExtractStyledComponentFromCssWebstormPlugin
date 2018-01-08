@@ -2,22 +2,25 @@ import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.PlatformDataKeys
 import com.intellij.openapi.command.WriteCommandAction
+import com.intellij.openapi.editor.Caret
 import com.intellij.openapi.editor.Document
+import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
-import com.intellij.psi.PsiDocumentManager
-import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiFile
-import com.intellij.psi.PsiFileFactory
+import com.intellij.openapi.ui.MessageType
+import com.intellij.openapi.ui.popup.Balloon
+import com.intellij.openapi.ui.popup.JBPopupFactory
+import com.intellij.psi.*
 import com.intellij.psi.css.CssClass
 import com.intellij.psi.css.CssFile
 import com.intellij.psi.css.CssRuleset
+import com.intellij.ui.awt.RelativePoint
 
 internal class ConvertToStyledComponent : AnAction("Convert to a styled component") {
 
     override fun actionPerformed(event: AnActionEvent) {
         val project = event.getData(PlatformDataKeys.PROJECT)
-        val caret = event.getData(PlatformDataKeys.CARET)
-        val editor = event.getData(PlatformDataKeys.EDITOR)
+        val caret = event.getData(PlatformDataKeys.CARET)!!
+        val editor = event.getData(PlatformDataKeys.EDITOR)!!
         var document: Document? = null
         if (editor != null) {
             document = editor.document
@@ -134,6 +137,16 @@ internal class ConvertToStyledComponent : AnAction("Convert to a styled componen
             for (i in classNames.indices) {
                 val psiReference = classNameReference?.references!![i]
                 val cssClass = psiReference?.resolve()
+                if (psiReference is PsiPolyVariantReference) {
+                    val multiResolve = psiReference.multiResolve(false)
+                    multiResolve.forEach { r -> System.out.println(r.toString())}
+                   /* JBPopupFactory.getInstance()
+                            .createDialogBalloonBuilder(editor.component, "olol jeah")
+                            .setFadeoutTime(7500)
+                            .createBalloon()
+                            .show(RelativePoint.getCenterOf(editor.component),
+                                    Balloon.Position.atRight)*/
+                }
 
                 var declarationStrings = ""
                 if (cssClass is CssClass) {
