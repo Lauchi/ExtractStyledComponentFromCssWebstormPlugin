@@ -2,23 +2,20 @@ import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.PlatformDataKeys
 import com.intellij.openapi.command.WriteCommandAction
-import com.intellij.openapi.editor.Caret
 import com.intellij.openapi.editor.Document
-import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.ui.MessageType
-import com.intellij.openapi.ui.popup.Balloon
-import com.intellij.openapi.ui.popup.JBPopupFactory
+import com.intellij.openapi.ui.SelectFromListDialog
 import com.intellij.psi.*
 import com.intellij.psi.css.CssClass
 import com.intellij.psi.css.CssFile
 import com.intellij.psi.css.CssRuleset
-import com.intellij.ui.awt.RelativePoint
 
 internal class ConvertToStyledComponent : AnAction("Convert to a styled component") {
 
+    private lateinit var project: Project
+
     override fun actionPerformed(event: AnActionEvent) {
-        val project = event.getData(PlatformDataKeys.PROJECT)
+        project = event.getData(PlatformDataKeys.PROJECT)!!
         val caret = event.getData(PlatformDataKeys.CARET)!!
         val editor = event.getData(PlatformDataKeys.EDITOR)!!
         var document: Document? = null
@@ -38,7 +35,7 @@ internal class ConvertToStyledComponent : AnAction("Convert to a styled componen
 
         if (jsxElement != null) {
             val styledComponentClassNames = getClassNames(jsxElement)
-            addStyledDefinitionAtEnd(project!!, psiFile!!, jsxElement, styledComponentClassNames)
+            addStyledDefinitionAtEnd(project, psiFile!!, jsxElement, styledComponentClassNames)
             replaceHtmlElementWithStyledTag(project, psiFile, jsxElement, styledComponentClassNames)
         }
     }
@@ -98,7 +95,7 @@ internal class ConvertToStyledComponent : AnAction("Convert to a styled componen
         for (i in classNames.indices) {
             val className = classNames[i].capitalize()
             var extractedCss = ""
-            if (extractedCssList.size < i) {
+            if (i < extractedCssList.size) {
                 extractedCss = extractedCssList[i]
             }
 
@@ -108,7 +105,7 @@ internal class ConvertToStyledComponent : AnAction("Convert to a styled componen
                 "\n\nconst $className = $lastClassName.extend`\n$extractedCss`;"
             }
 
-            val styledComponentDefinitionPsi = PsiFileFactory.getInstance(project).createFileFromText(styledComponentDefinition, psiFile!!)
+            val styledComponentDefinitionPsi = PsiFileFactory.getInstance(project).createFileFromText(styledComponentDefinition, psiFile)
 
             var runnable: Runnable? = null
             if (styledComponentDefinitionPsi != null) {
@@ -136,27 +133,34 @@ internal class ConvertToStyledComponent : AnAction("Convert to a styled componen
         if (classNames != null) {
             for (i in classNames.indices) {
                 val psiReference = classNameReference?.references!![i]
-                val cssClass = psiReference?.resolve()
                 if (psiReference is PsiPolyVariantReference) {
                     val multiResolve = psiReference.multiResolve(false)
-                    multiResolve.forEach { r -> System.out.println(r.toString())}
-                   /* JBPopupFactory.getInstance()
-                            .createDialogBalloonBuilder(editor.component, "olol jeah")
-                            .setFadeoutTime(7500)
-                            .createBalloon()
-                            .show(RelativePoint.getCenterOf(editor.component),
-                                    Balloon.Position.atRight)*/
-                }
+                    val resolvedElements = multiResolve.map { res -> res.element }.toTypedArray()
 
-                var declarationStrings = ""
-                if (cssClass is CssClass) {
-                    val cssRuleSet = getCssClassFromFile(cssClass, classNames[i])
-                    cssRuleSet?.block?.declarations?.forEach { dec ->
-                        val rule = dec.text
-                        declarationStrings += "\t$rule;\n"
+                    val selected = if (resolvedElements.size > 1) {
+                        val selectFromListDialog = SelectFromListDialog(project, resolvedElements,
+                            SelectFromListDialog.ToStringAspect { s -> if (s is CssClass) {
+                                s.containingFile.virtualFile.name
+                            } else {
+                                "no css File"
+                            } } ,
+                            "Select the correct css file", 1)
+                        selectFromListDialog.showAndGet()
+                        selectFromListDialog.selection[0]
+                    } else {
+                        resolvedElements[0]
                     }
+
+                    var declarationStrings = ""
+                    if (selected is CssClass) {
+                        val cssRuleSet = getCssClassFromFile(selected, classNames[i])
+                        cssRuleSet?.block?.declarations?.forEach { dec ->
+                            val rule = dec.text
+                            declarationStrings += "\t$rule;\n"
+                        }
+                    }
+                    stringList.add(declarationStrings)
                 }
-                stringList.add(declarationStrings)
             }
         }
 
@@ -179,7 +183,7 @@ internal class ConvertToStyledComponent : AnAction("Convert to a styled componen
     }
 
     private fun getClassNameReferences(jsxElement: PsiElement): PsiElement? {
-        val classNameTag = getClassNameTag(jsxElement!!)
+        val classNameTag = getClassNameTag(jsxElement)
         val firstChild = classNameTag?.firstChild
         val firstChild1 = firstChild?.nextSibling
         return firstChild1?.nextSibling
