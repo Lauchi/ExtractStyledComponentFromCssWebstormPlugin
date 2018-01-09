@@ -15,9 +15,11 @@ import com.intellij.psi.xml.XmlAttribute
 internal class ConvertToStyledComponent : AnAction("Convert to a styled component") {
 
     private lateinit var project: Project
+    private lateinit var dialogManager: DialogManager
 
     override fun actionPerformed(event: AnActionEvent) {
         project = event.getData(PlatformDataKeys.PROJECT)!!
+        dialogManager = DialogManager(project)
         val caret = event.getData(PlatformDataKeys.CARET)!!
         val editor = event.getData(PlatformDataKeys.EDITOR)!!
         val document = editor.document
@@ -106,18 +108,10 @@ internal class ConvertToStyledComponent : AnAction("Convert to a styled componen
                 val psiReference = classNameReferences[i]
                 if (psiReference is PsiPolyVariantReference) {
                     val multiResolve = psiReference.multiResolve(false)
-                    val resolvedElements = multiResolve.map { res -> res.element }.toTypedArray()
+                    val resolvedElements = multiResolve.map { res -> res.element }
 
                     val selected = if (resolvedElements.size > 1) {
-                        val selectFromListDialog = SelectFromListDialog(project, resolvedElements,
-                            SelectFromListDialog.ToStringAspect { s -> if (s is CssClass) {
-                                s.containingFile.virtualFile.name
-                            } else {
-                                "no css File"
-                            } } ,
-                            "Select the correct css file", 1)
-                        selectFromListDialog.showAndGet()
-                        selectFromListDialog.selection[0]
+                        dialogManager.getFileSelectionFromUser(resolvedElements as List<PsiElement>)
                     } else {
                         resolvedElements[0]
                     }
@@ -155,4 +149,20 @@ internal class ConvertToStyledComponent : AnAction("Convert to a styled componen
         val classNameTag = getClassNameTag(jsxElement)
         return classNameTag?.valueElement?.references ?: return emptyArray()
     }
+}
+
+class DialogManager(private val project: Project) {
+
+    fun getFileSelectionFromUser(resolvedElements: List<PsiElement>): Any {
+        val selectFromListDialog = SelectFromListDialog(project, resolvedElements.toTypedArray(),
+                SelectFromListDialog.ToStringAspect { string -> if (string is CssClass) {
+                    string.containingFile.virtualFile.name
+                } else {
+                    "no css File"
+                } } ,
+                "Source", 1)
+        selectFromListDialog.showAndGet()
+        return selectFromListDialog.selection[0]
+    }
+
 }
