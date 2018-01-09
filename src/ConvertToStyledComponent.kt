@@ -20,7 +20,7 @@ internal class ConvertToStyledComponent : AnAction("Convert to a styled componen
         project = event.getData(PlatformDataKeys.PROJECT)!!
         val caret = event.getData(PlatformDataKeys.CARET)!!
         val editor = event.getData(PlatformDataKeys.EDITOR)!!
-        val document = editor.document!!
+        val document = editor.document
         val psiFile = PsiDocumentManager.getInstance(project).getPsiFile(document)!!
 
         val psiElement = psiFile.findElementAt(caret.offset)!!
@@ -40,7 +40,7 @@ internal class ConvertToStyledComponent : AnAction("Convert to a styled componen
         return classNames.replace("\'", "").replace("\"", "").split(" ")
     }
 
-    private fun replaceHtmlElementWithStyledTag(project: Project?, jsXmlElement: JSXmlLiteralExpressionImpl, classNames: List<String>) {
+    private fun replaceHtmlElementWithStyledTag(project: Project, jsXmlElement: JSXmlLiteralExpressionImpl, classNames: List<String>) {
         val newTag = classNames.map { name -> name.capitalize() }.last()
 
         val runnable = Runnable {
@@ -101,8 +101,7 @@ internal class ConvertToStyledComponent : AnAction("Convert to a styled componen
         val classNameReferences = getClassNameReferences(jsxElement)
         val classNames = getClassNames(jsxElement)
 
-        var stringList: ArrayList<String> = arrayListOf()
-        if (classNames != null) {
+        val stringList: ArrayList<String> = arrayListOf()
             for (i in classNames.indices) {
                 val psiReference = classNameReferences[i]
                 if (psiReference is PsiPolyVariantReference) {
@@ -134,13 +133,11 @@ internal class ConvertToStyledComponent : AnAction("Convert to a styled componen
                     stringList.add(declarationStrings)
                 }
             }
-        }
-
         return stringList
     }
 
-    private fun getCssRulesetFromFile(cssClassReference: CssClass?, className: String): CssRuleset? {
-        val cssFile = cssClassReference?.containingFile
+    private fun getCssRulesetFromFile(cssClassReference: CssClass, className: String): CssRuleset? {
+        val cssFile = cssClassReference.containingFile
         var ruleSet: CssRuleset? = null
         if (cssFile is CssFile) {
             val stylesheet = cssFile.stylesheet
