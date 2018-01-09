@@ -3,7 +3,6 @@ import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.PlatformDataKeys
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.ui.SelectFromListDialog
 import com.intellij.psi.*
 import com.intellij.psi.css.CssClass
 import com.intellij.psi.css.CssFile
@@ -16,10 +15,12 @@ internal class ConvertToStyledComponent : AnAction("Convert to a styled componen
 
     private lateinit var project: Project
     private lateinit var dialogManager: DialogManager
+    private lateinit var fileWriter: PsiFileWriter
 
     override fun actionPerformed(event: AnActionEvent) {
         project = event.getData(PlatformDataKeys.PROJECT)!!
         dialogManager = DialogManager(project)
+        fileWriter = PsiFileWriter(project)
         val caret = event.getData(PlatformDataKeys.CARET)!!
         val editor = event.getData(PlatformDataKeys.EDITOR)!!
         val document = editor.document
@@ -30,8 +31,8 @@ internal class ConvertToStyledComponent : AnAction("Convert to a styled componen
             val jsxElement = psiElement.parent
             if (jsxElement is JSXmlLiteralExpressionImpl) {
                 val styledComponentClassNames = getClassNames(jsxElement)
-                addStyledDefinitionAtEnd(project, psiFile, jsxElement, styledComponentClassNames)
-                replaceHtmlElementWithStyledTag(project, jsxElement, styledComponentClassNames)
+                addStyledDefinitionAtEnd(psiFile, jsxElement, styledComponentClassNames)
+                replaceHtmlElementWithStyledTag(jsxElement, styledComponentClassNames)
             }
         }
     }
@@ -42,16 +43,11 @@ internal class ConvertToStyledComponent : AnAction("Convert to a styled componen
         return classNames.replace("\'", "").replace("\"", "").split(" ")
     }
 
-    private fun replaceHtmlElementWithStyledTag(project: Project, jsXmlElement: JSXmlLiteralExpressionImpl, classNames: List<String>) {
+    private fun replaceHtmlElementWithStyledTag(jsXmlElement: JSXmlLiteralExpressionImpl, classNames: List<String>) {
         val newTag = classNames.map { name -> name.capitalize() }.last()
+        val classNameTag = getClassNameTag(jsXmlElement)
 
-        val runnable = Runnable {
-            val classNameTag = getClassNameTag(jsXmlElement)
-            classNameTag?.delete()
-            jsXmlElement.name = newTag
-        }
-
-        WriteCommandAction.runWriteCommandAction(project, runnable)
+        fileWriter.renameHtmlTagAndDeleteClassTag(newTag, classNameTag, jsXmlElement)
     }
 
     private fun getClassNameTag(jsxElement: JSXmlLiteralExpressionImpl): XmlAttribute? {
@@ -65,7 +61,7 @@ internal class ConvertToStyledComponent : AnAction("Convert to a styled componen
         return classNameAttributes[0]
     }
 
-    private fun addStyledDefinitionAtEnd(project: Project, psiFile: PsiFile, jsxElement: JSXmlLiteralExpressionImpl, classNames: List<String>) {
+    private fun addStyledDefinitionAtEnd(psiFile: PsiFile, jsxElement: JSXmlLiteralExpressionImpl, classNames: List<String>) {
         val htmlElement = jsxElement.name
         val extractedCssList = getCssRulesAsBlockStringFrom(jsxElement)
 
@@ -151,18 +147,3 @@ internal class ConvertToStyledComponent : AnAction("Convert to a styled componen
     }
 }
 
-class DialogManager(private val project: Project) {
-
-    fun getFileSelectionFromUser(resolvedElements: List<PsiElement>): Any {
-        val selectFromListDialog = SelectFromListDialog(project, resolvedElements.toTypedArray(),
-                SelectFromListDialog.ToStringAspect { string -> if (string is CssClass) {
-                    string.containingFile.virtualFile.name
-                } else {
-                    "no css File"
-                } } ,
-                "Source", 1)
-        selectFromListDialog.showAndGet()
-        return selectFromListDialog.selection[0]
-    }
-
-}
