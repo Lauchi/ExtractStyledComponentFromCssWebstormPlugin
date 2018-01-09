@@ -40,15 +40,6 @@ internal class ConvertToStyledComponent : AnAction("Convert to a styled componen
         return classNames.replace("\'", "").replace("\"", "").split(" ")
     }
 
-    private fun getClassNameAttribute(classNameTag: JSXmlLiteralExpressionImpl?): PsiElement? {
-        val classNameTag = getClassNameTag(classNameTag!!)
-        val firstChild = classNameTag?.firstChild
-        val firstChild1 = firstChild?.nextSibling
-        val nextSibling2 = firstChild1?.nextSibling
-        val nextSibling3 = nextSibling2?.firstChild
-        return nextSibling3?.nextSibling
-    }
-
     private fun replaceHtmlElementWithStyledTag(project: Project?, psiFile: PsiFile?, jsXmlElement: JSXmlLiteralExpressionImpl, classNames: List<String>) {
         val newTag = classNames.map { name -> name.capitalize() }.last()
         val styledComponentTag = PsiFileFactory.getInstance(project!!).createFileFromText(newTag, psiFile!!)
@@ -119,13 +110,13 @@ internal class ConvertToStyledComponent : AnAction("Convert to a styled componen
     }
 
     private fun getCssRulesAsBlockStringFrom(jsxElement: JSXmlLiteralExpressionImpl): List<String> {
-        val classNameReference = getClassNameReferences(jsxElement)
-        val classNames = getClassNameAttribute(jsxElement)?.text?.split(" ")
+        val classNameReferences = getClassNameReferences(jsxElement)
+        val classNames = getClassNames(jsxElement)
 
         var stringList: ArrayList<String> = arrayListOf()
         if (classNames != null) {
             for (i in classNames.indices) {
-                val psiReference = classNameReference?.references!![i]
+                val psiReference = classNameReferences[i]
                 if (psiReference is PsiPolyVariantReference) {
                     val multiResolve = psiReference.multiResolve(false)
                     val resolvedElements = multiResolve.map { res -> res.element }.toTypedArray()
@@ -175,10 +166,8 @@ internal class ConvertToStyledComponent : AnAction("Convert to a styled componen
         return ruleSet
     }
 
-    private fun getClassNameReferences(jsxElement: JSXmlLiteralExpressionImpl): PsiElement? {
+    private fun getClassNameReferences(jsxElement: JSXmlLiteralExpressionImpl): Array<out PsiReference> {
         val classNameTag = getClassNameTag(jsxElement)
-        val firstChild = classNameTag?.firstChild
-        val firstChild1 = firstChild?.nextSibling
-        return firstChild1?.nextSibling
+        return classNameTag?.valueElement?.references ?: return emptyArray()
     }
 }
