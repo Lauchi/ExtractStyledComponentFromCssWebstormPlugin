@@ -42,22 +42,14 @@ internal class ConvertToStyledComponent : AnAction("Convert to a styled componen
 
     private fun replaceHtmlElementWithStyledTag(project: Project?, psiFile: PsiFile?, jsXmlElement: JSXmlLiteralExpressionImpl, classNames: List<String>) {
         val newTag = classNames.map { name -> name.capitalize() }.last()
-        val styledComponentTag = PsiFileFactory.getInstance(project!!).createFileFromText(newTag, psiFile!!)
 
-        var runnable: Runnable? = null
-        if (styledComponentTag != null) {
-            runnable = Runnable {
-                val classNameTag = getClassNameTag(jsXmlElement)
-                classNameTag?.delete()
-                val startTag = jsXmlElement.firstChild.nextSibling
-                startTag.replace(styledComponentTag)
-                val endTag = jsXmlElement.lastChild.prevSibling
-                endTag.replace(styledComponentTag)
-            }
+        val runnable = Runnable {
+            val classNameTag = getClassNameTag(jsXmlElement)
+            classNameTag?.delete()
+            jsXmlElement.name = newTag
         }
-        if (runnable != null) {
-            WriteCommandAction.runWriteCommandAction(project, runnable)
-        }
+
+        WriteCommandAction.runWriteCommandAction(project, runnable)
     }
 
     private fun getClassNameTag(jsxElement: JSXmlLiteralExpressionImpl): XmlAttribute? {
@@ -133,7 +125,7 @@ internal class ConvertToStyledComponent : AnAction("Convert to a styled componen
 
                     var declarationStrings = ""
                     if (selected is CssClass) {
-                        val cssRuleSet = getCssClassFromFile(selected, classNames[i])
+                        val cssRuleSet = getCssRulesetFromFile(selected, classNames[i])
                         cssRuleSet?.block?.declarations?.forEach { dec ->
                             val rule = dec.text
                             declarationStrings += "\t$rule;\n"
@@ -147,7 +139,7 @@ internal class ConvertToStyledComponent : AnAction("Convert to a styled componen
         return stringList
     }
 
-    private fun getCssClassFromFile(cssClassReference: CssClass?, className: String): CssRuleset? {
+    private fun getCssRulesetFromFile(cssClassReference: CssClass?, className: String): CssRuleset? {
         val cssFile = cssClassReference?.containingFile
         var ruleSet: CssRuleset? = null
         if (cssFile is CssFile) {
