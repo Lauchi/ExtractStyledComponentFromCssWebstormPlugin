@@ -72,7 +72,7 @@ internal class ConvertToStyledComponent : AnAction("Convert to a styled componen
     }
 
     private fun addStyledDefinitionAtEnd(project: Project, psiFile: PsiFile, jsxElement: JSXmlLiteralExpressionImpl, classNames: List<String>) {
-        val htmlElement = getHtmlTag(jsxElement)
+        val htmlElement = jsxElement.name
         val extractedCssList = getCssRulesAsBlockStringFrom(jsxElement)
 
         var lastClassName = ""
@@ -103,10 +103,6 @@ internal class ConvertToStyledComponent : AnAction("Convert to a styled componen
             }
             lastClassName = className
         }
-    }
-
-    private fun getHtmlTag(jsxElement: PsiElement): String {
-        return jsxElement.firstChild.nextSibling.text
     }
 
     private fun getCssRulesAsBlockStringFrom(jsxElement: JSXmlLiteralExpressionImpl): List<String> {
