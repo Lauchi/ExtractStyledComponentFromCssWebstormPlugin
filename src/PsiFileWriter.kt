@@ -5,24 +5,24 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiFileFactory
 import com.intellij.psi.xml.XmlAttribute
 
-class PsiFileWriter(private val project: Project, private val psiFile: PsiFile) {
+class PsiFileWriter(private val psiFile: PsiFile) {
     fun renameHtmlTagAndDeleteClassTag(newTag: String, classNameTag: XmlAttribute?, jsXmlElement: JSXmlLiteralExpressionImpl) {
         val runnable = Runnable {
             classNameTag?.delete()
             jsXmlElement.name = newTag
         }
 
-        WriteCommandAction.runWriteCommandAction(project, runnable)
+        WriteCommandAction.runWriteCommandAction(psiFile.project, runnable)
     }
 
     fun addStyledCompDefinition(styledComponentDefinition: String) {
-        val styledComponentDefinitionPsi = PsiFileFactory.getInstance(project).createFileFromText(styledComponentDefinition, psiFile)!!
+        val styledComponentDefinitionPsi = PsiFileFactory.getInstance(psiFile.project).createFileFromText(styledComponentDefinition, psiFile)!!
 
         val runnable = Runnable {
             val lastElement = psiFile.node.lastChildNode.psi
             psiFile.addAfter(styledComponentDefinitionPsi, lastElement)
         }
 
-        WriteCommandAction.runWriteCommandAction(project, runnable)
+        WriteCommandAction.runWriteCommandAction(psiFile.project, runnable)
     }
 }

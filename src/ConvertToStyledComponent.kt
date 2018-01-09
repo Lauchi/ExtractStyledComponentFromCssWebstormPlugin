@@ -24,7 +24,7 @@ internal class ConvertToStyledComponent : AnAction("Convert to a styled componen
         val psiFile = PsiDocumentManager.getInstance(project).getPsiFile(document)!!
 
         dialogManager = DialogManager(project)
-        fileWriter = PsiFileWriter(project, psiFile)
+        fileWriter = PsiFileWriter(psiFile)
 
         val psiElement = psiFile.findElementAt(caret.offset)!!
         if (psiElement is XmlElement) {
