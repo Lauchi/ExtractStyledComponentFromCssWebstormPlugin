@@ -38,21 +38,14 @@ internal class ConvertToStyledComponent : AnAction("Convert to a styled componen
     private fun getClassNames(jsxElement: JSXmlLiteralExpressionImpl): List<String> {
         val attributes = jsxElement.attributes
         val classNameAttributes = attributes.filter { attribute ->
-            if (attribute is JSXmlAttributeImpl) {
-                val name = attribute.name
-                name == "className"
-            } else {
-                false
-            }
+            val name = attribute.name
+            name == "className"
         }
 
         if (classNameAttributes.isEmpty()) return emptyList()
         val classNameAttribute = classNameAttributes[0]
-        if (classNameAttribute is JSXmlAttributeImpl) {
-            val classNames = classNameAttribute.value ?: return emptyList()
-            return classNames.replace("\'", "").replace("\"", "").split(" ")
-        }
-        return emptyList()
+        val classNames = classNameAttribute.value ?: return emptyList()
+        return classNames.replace("\'", "").replace("\"", "").split(" ")
     }
 
     private fun getClassNameAttribute(classNameTag: PsiElement?): PsiElement? {
