@@ -29,7 +29,7 @@ internal class ConvertToStyledComponent : AnAction("Convert to a styled componen
             if (jsxElement is JSXmlLiteralExpressionImpl) {
                 val styledComponentClassNames = getClassNames(jsxElement)
                 addStyledDefinitionAtEnd(project, psiFile, jsxElement, styledComponentClassNames)
-                replaceHtmlElementWithStyledTag(project, psiFile, jsxElement, styledComponentClassNames)
+                replaceHtmlElementWithStyledTag(project, jsxElement, styledComponentClassNames)
             }
         }
     }
@@ -40,7 +40,7 @@ internal class ConvertToStyledComponent : AnAction("Convert to a styled componen
         return classNames.replace("\'", "").replace("\"", "").split(" ")
     }
 
-    private fun replaceHtmlElementWithStyledTag(project: Project?, psiFile: PsiFile?, jsXmlElement: JSXmlLiteralExpressionImpl, classNames: List<String>) {
+    private fun replaceHtmlElementWithStyledTag(project: Project?, jsXmlElement: JSXmlLiteralExpressionImpl, classNames: List<String>) {
         val newTag = classNames.map { name -> name.capitalize() }.last()
 
         val runnable = Runnable {
