@@ -1,7 +1,6 @@
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.PlatformDataKeys
-import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.project.Project
 import com.intellij.psi.*
 import com.intellij.psi.css.CssClass
@@ -19,19 +18,20 @@ internal class ConvertToStyledComponent : AnAction("Convert to a styled componen
 
     override fun actionPerformed(event: AnActionEvent) {
         project = event.getData(PlatformDataKeys.PROJECT)!!
-        dialogManager = DialogManager(project)
-        fileWriter = PsiFileWriter(project)
         val caret = event.getData(PlatformDataKeys.CARET)!!
         val editor = event.getData(PlatformDataKeys.EDITOR)!!
         val document = editor.document
         val psiFile = PsiDocumentManager.getInstance(project).getPsiFile(document)!!
+
+        dialogManager = DialogManager(project)
+        fileWriter = PsiFileWriter(project, psiFile)
 
         val psiElement = psiFile.findElementAt(caret.offset)!!
         if (psiElement is XmlElement) {
             val jsxElement = psiElement.parent
             if (jsxElement is JSXmlLiteralExpressionImpl) {
                 val styledComponentClassNames = getClassNames(jsxElement)
-                addStyledDefinitionAtEnd(psiFile, jsxElement, styledComponentClassNames)
+                addStyledDefinitionAtEnd(jsxElement, styledComponentClassNames)
                 replaceHtmlElementWithStyledTag(jsxElement, styledComponentClassNames)
             }
         }
@@ -61,7 +61,7 @@ internal class ConvertToStyledComponent : AnAction("Convert to a styled componen
         return classNameAttributes[0]
     }
 
-    private fun addStyledDefinitionAtEnd(psiFile: PsiFile, jsxElement: JSXmlLiteralExpressionImpl, classNames: List<String>) {
+    private fun addStyledDefinitionAtEnd(jsxElement: JSXmlLiteralExpressionImpl, classNames: List<String>) {
         val htmlElement = jsxElement.name
         val extractedCssList = getCssRulesAsBlockStringFrom(jsxElement)
 
@@ -79,18 +79,8 @@ internal class ConvertToStyledComponent : AnAction("Convert to a styled componen
                 "\n\nconst $className = $lastClassName.extend`\n$extractedCss`;"
             }
 
-            val styledComponentDefinitionPsi = PsiFileFactory.getInstance(project).createFileFromText(styledComponentDefinition, psiFile)
+            fileWriter.addStyledCompDefinition(styledComponentDefinition)
 
-            var runnable: Runnable? = null
-            if (styledComponentDefinitionPsi != null) {
-                runnable = Runnable {
-                    val lastElement = psiFile.node.lastChildNode.psi
-                    psiFile.addAfter(styledComponentDefinitionPsi, lastElement)
-                }
-            }
-            if (runnable != null) {
-                WriteCommandAction.runWriteCommandAction(project, runnable)
-            }
             lastClassName = className
         }
     }
@@ -146,4 +136,3 @@ internal class ConvertToStyledComponent : AnAction("Convert to a styled componen
         return classNameTag?.valueElement?.references ?: return emptyArray()
     }
 }
-
