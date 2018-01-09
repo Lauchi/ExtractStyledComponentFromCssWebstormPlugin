@@ -1,4 +1,3 @@
-import com.intellij.lang.javascript.psi.e4x.impl.JSXmlAttributeImpl
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.PlatformDataKeys
@@ -29,26 +28,19 @@ internal class ConvertToStyledComponent : AnAction("Convert to a styled componen
             val jsxElement = psiElement.parent
             if (jsxElement is JSXmlLiteralExpressionImpl) {
                 val styledComponentClassNames = getClassNames(jsxElement)
-                addStyledDefinitionAtEnd(project, psiFile!!, jsxElement, styledComponentClassNames)
+                addStyledDefinitionAtEnd(project, psiFile, jsxElement, styledComponentClassNames)
                 replaceHtmlElementWithStyledTag(project, psiFile, jsxElement, styledComponentClassNames)
             }
         }
     }
 
     private fun getClassNames(jsxElement: JSXmlLiteralExpressionImpl): List<String> {
-        val attributes = jsxElement.attributes
-        val classNameAttributes = attributes.filter { attribute ->
-            val name = attribute.name
-            name == "className"
-        }
-
-        if (classNameAttributes.isEmpty()) return emptyList()
-        val classNameAttribute = classNameAttributes[0]
-        val classNames = classNameAttribute.value ?: return emptyList()
+        val classNameTag = getClassNameTag(jsxElement)
+        val classNames = classNameTag?.value ?: return emptyList()
         return classNames.replace("\'", "").replace("\"", "").split(" ")
     }
 
-    private fun getClassNameAttribute(classNameTag: PsiElement?): PsiElement? {
+    private fun getClassNameAttribute(classNameTag: JSXmlLiteralExpressionImpl?): PsiElement? {
         val classNameTag = getClassNameTag(classNameTag!!)
         val firstChild = classNameTag?.firstChild
         val firstChild1 = firstChild?.nextSibling
@@ -57,18 +49,18 @@ internal class ConvertToStyledComponent : AnAction("Convert to a styled componen
         return nextSibling3?.nextSibling
     }
 
-    private fun replaceHtmlElementWithStyledTag(project: Project?, psiFile: PsiFile?, psiElement: PsiElement, classNames: List<String>) {
+    private fun replaceHtmlElementWithStyledTag(project: Project?, psiFile: PsiFile?, jsXmlElement: JSXmlLiteralExpressionImpl, classNames: List<String>) {
         val newTag = classNames.map { name -> name.capitalize() }.last()
         val styledComponentTag = PsiFileFactory.getInstance(project!!).createFileFromText(newTag, psiFile!!)
 
         var runnable: Runnable? = null
         if (styledComponentTag != null) {
             runnable = Runnable {
-                val classNameTag = getClassNameTag(psiElement)
+                val classNameTag = getClassNameTag(jsXmlElement)
                 classNameTag?.delete()
-                val startTag = psiElement.firstChild.nextSibling
+                val startTag = jsXmlElement.firstChild.nextSibling
                 startTag.replace(styledComponentTag)
-                val endTag = psiElement.lastChild.prevSibling
+                val endTag = jsXmlElement.lastChild.prevSibling
                 endTag.replace(styledComponentTag)
             }
         }
@@ -77,18 +69,18 @@ internal class ConvertToStyledComponent : AnAction("Convert to a styled componen
         }
     }
 
-    private fun getClassNameTag(psiElement: PsiElement): PsiElement? {
-
-        var result: PsiElement? = null
-        psiElement.children.forEach{child ->
-            if (child.firstChild?.text == "className") {
-                result = child
-            }
+    private fun getClassNameTag(jsxElement: JSXmlLiteralExpressionImpl): XmlAttribute? {
+        val attributes = jsxElement.attributes
+        val classNameAttributes = attributes.filter { attribute ->
+            val name = attribute.name
+            name == "className"
         }
-        return result
+
+        if (classNameAttributes.isEmpty()) return null
+        return classNameAttributes[0]
     }
 
-    private fun addStyledDefinitionAtEnd(project: Project, psiFile: PsiFile, jsxElement: PsiElement, classNames: List<String>) {
+    private fun addStyledDefinitionAtEnd(project: Project, psiFile: PsiFile, jsxElement: JSXmlLiteralExpressionImpl, classNames: List<String>) {
         val htmlElement = getHtmlTag(jsxElement)
         val extractedCssList = getCssRulesAsBlockStringFrom(jsxElement)
 
@@ -126,7 +118,7 @@ internal class ConvertToStyledComponent : AnAction("Convert to a styled componen
         return jsxElement.firstChild.nextSibling.text
     }
 
-    private fun getCssRulesAsBlockStringFrom(jsxElement: PsiElement): List<String> {
+    private fun getCssRulesAsBlockStringFrom(jsxElement: JSXmlLiteralExpressionImpl): List<String> {
         val classNameReference = getClassNameReferences(jsxElement)
         val classNames = getClassNameAttribute(jsxElement)?.text?.split(" ")
 
@@ -183,7 +175,7 @@ internal class ConvertToStyledComponent : AnAction("Convert to a styled componen
         return ruleSet
     }
 
-    private fun getClassNameReferences(jsxElement: PsiElement): PsiElement? {
+    private fun getClassNameReferences(jsxElement: JSXmlLiteralExpressionImpl): PsiElement? {
         val classNameTag = getClassNameTag(jsxElement)
         val firstChild = classNameTag?.firstChild
         val firstChild1 = firstChild?.nextSibling
