@@ -12,6 +12,7 @@
   <idea-version since-build="163"/>
   <depends>com.intellij.modules.lang</depends>
   <depends>com.intellij.css</depends>
+  <depends>JavaScript</depends>
 
   <extensions defaultExtensionNs="com.intellij">
   </extensions>

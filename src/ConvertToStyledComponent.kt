@@ -1,14 +1,17 @@
+import com.intellij.lang.javascript.psi.e4x.impl.JSXmlAttributeImpl
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.PlatformDataKeys
 import com.intellij.openapi.command.WriteCommandAction
-import com.intellij.openapi.editor.Document
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.SelectFromListDialog
 import com.intellij.psi.*
 import com.intellij.psi.css.CssClass
 import com.intellij.psi.css.CssFile
 import com.intellij.psi.css.CssRuleset
+import com.intellij.psi.xml.XmlElement
+import com.intellij.lang.javascript.psi.e4x.impl.JSXmlLiteralExpressionImpl
+import com.intellij.psi.xml.XmlAttribute
 
 internal class ConvertToStyledComponent : AnAction("Convert to a styled component") {
 
@@ -18,33 +21,38 @@ internal class ConvertToStyledComponent : AnAction("Convert to a styled componen
         project = event.getData(PlatformDataKeys.PROJECT)!!
         val caret = event.getData(PlatformDataKeys.CARET)!!
         val editor = event.getData(PlatformDataKeys.EDITOR)!!
-        var document: Document? = null
-        if (editor != null) {
-            document = editor.document
-        }
-        var psiFile: PsiFile? = null
-        if (project != null && document != null) {
-            psiFile = PsiDocumentManager.getInstance(project).getPsiFile(document)
-        }
+        val document = editor.document!!
+        val psiFile = PsiDocumentManager.getInstance(project).getPsiFile(document)!!
 
-        var jsxElement: PsiElement? = null
-        if (psiFile != null && caret != null) {
-            val psiElement = psiFile.findElementAt(caret.offset)
-            jsxElement = psiElement?.parent
-        }
-
-        if (jsxElement != null) {
-            val styledComponentClassNames = getClassNames(jsxElement)
-            addStyledDefinitionAtEnd(project, psiFile!!, jsxElement, styledComponentClassNames)
-            replaceHtmlElementWithStyledTag(project, psiFile, jsxElement, styledComponentClassNames)
+        val psiElement = psiFile.findElementAt(caret.offset)!!
+        if (psiElement is XmlElement) {
+            val jsxElement = psiElement.parent
+            if (jsxElement is JSXmlLiteralExpressionImpl) {
+                val styledComponentClassNames = getClassNames(jsxElement)
+                addStyledDefinitionAtEnd(project, psiFile!!, jsxElement, styledComponentClassNames)
+                replaceHtmlElementWithStyledTag(project, psiFile, jsxElement, styledComponentClassNames)
+            }
         }
     }
 
-    private fun getClassNames(jsxElement: PsiElement): List<String> {
-        val className = getClassNameAttribute(jsxElement)
-        var resultRaw = className?.text
-        if (resultRaw == null) resultRaw = getHtmlTag(jsxElement)
-        return resultRaw.replace("\'", "").replace("\"", "").split(" ")
+    private fun getClassNames(jsxElement: JSXmlLiteralExpressionImpl): List<String> {
+        val attributes = jsxElement.attributes
+        val classNameAttributes = attributes.filter { attribute ->
+            if (attribute is JSXmlAttributeImpl) {
+                val name = attribute.name
+                name == "className"
+            } else {
+                false
+            }
+        }
+
+        if (classNameAttributes.isEmpty()) return emptyList()
+        val classNameAttribute = classNameAttributes[0]
+        if (classNameAttribute is JSXmlAttributeImpl) {
+            val classNames = classNameAttribute.value ?: return emptyList()
+            return classNames.replace("\'", "").replace("\"", "").split(" ")
+        }
+        return emptyList()
     }
 
     private fun getClassNameAttribute(classNameTag: PsiElement?): PsiElement? {
