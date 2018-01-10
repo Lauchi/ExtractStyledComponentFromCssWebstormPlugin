@@ -9,6 +9,7 @@ import com.intellij.psi.css.CssRuleset
 import com.intellij.psi.xml.XmlElement
 import com.intellij.lang.javascript.psi.e4x.impl.JSXmlLiteralExpressionImpl
 import com.intellij.psi.xml.XmlAttribute
+import org.jetbrains.plugins.scss.psi.SCSSFileImpl
 
 internal class ConvertToStyledComponent : AnAction("Convert to a styled component") {
 
@@ -115,6 +116,14 @@ internal class ConvertToStyledComponent : AnAction("Convert to a styled componen
         val cssFile = cssClassReference.containingFile
         var ruleSet: CssRuleset? = null
         if (cssFile is CssFile) {
+            val stylesheet = cssFile.stylesheet
+            val rulesets = stylesheet.rulesets
+            rulesets.forEach { rule ->
+                rule.selectors.forEach { sel ->
+                    if (sel.text == "." + cssClassReference.name) ruleSet = rule
+                }
+            }
+        } else if (cssFile is SCSSFileImpl) {
             val stylesheet = cssFile.stylesheet
             val rulesets = stylesheet.rulesets
             rulesets.forEach { rule ->
