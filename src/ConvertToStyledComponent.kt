@@ -43,19 +43,16 @@ internal class ConvertToStyledComponent : AnAction("Convert to a styled componen
         return classNames.replace("\'", "").replace("\"", "").split(" ")
     }
 
-    private fun replaceHtmlElementWithStyledTag(jsXmlElement: JSXmlLiteralExpressionImpl, classNames: List<String>) {
-        val newTag = classNames.map { name -> name.capitalize() }.last()
-        val classNameTag = getClassNameTag(jsXmlElement)
+    private fun replaceHtmlElementWithStyledTag(jsxElement: JSXmlLiteralExpressionImpl, classNames: List<String>) {
+        val newTagName = classNames.map { name -> name.capitalize() }.last()
+        val classNameTagToDelete = getClassNameTag(jsxElement)
 
-        fileWriter.renameHtmlTagAndDeleteClassTag(newTag, classNameTag, jsXmlElement)
+        fileWriter.renameHtmlTagAndDeleteClassTag(jsxElement, newTagName, classNameTagToDelete)
     }
 
     private fun getClassNameTag(jsxElement: JSXmlLiteralExpressionImpl): XmlAttribute? {
         val attributes = jsxElement.attributes
-        val classNameAttributes = attributes.filter { attribute ->
-            val name = attribute.name
-            name == "className"
-        }
+        val classNameAttributes = attributes.filter { attribute -> attribute.name == "className" }
 
         if (classNameAttributes.isEmpty()) return null
         return classNameAttributes[0]
