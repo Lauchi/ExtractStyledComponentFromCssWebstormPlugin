@@ -84,36 +84,34 @@ internal class ConvertToStyledComponent : AnAction("Convert to a styled componen
 
     private fun getCssRulesAsBlockStringFrom(jsxElement: JSXmlLiteralExpressionImpl): List<String> {
         val classNameReferences = getClassNameReferences(jsxElement)
-        val classNames = getClassNames(jsxElement)
 
         val stringList: ArrayList<String> = arrayListOf()
-            for (i in classNames.indices) {
-                val psiReference = classNameReferences[i]
-                if (psiReference is PsiPolyVariantReference) {
-                    val multiResolve = psiReference.multiResolve(false)
-                    val resolvedElements = multiResolve.map { res -> res.element }
+        for(psiReference in classNameReferences) {
+            if (psiReference is PsiPolyVariantReference) {
+                val multiResolve = psiReference.multiResolve(false)
+                val resolvedElements = multiResolve.map { res -> res.element }
 
-                    val selected = if (resolvedElements.size > 1) {
-                        dialogManager.getFileSelectionFromUser(resolvedElements as List<PsiElement>)
-                    } else {
-                        resolvedElements[0]
-                    }
-
-                    var declarationStrings = ""
-                    if (selected is CssClass) {
-                        val cssRuleSet = getCssRulesetFromFile(selected, classNames[i])
-                        cssRuleSet?.block?.declarations?.forEach { dec ->
-                            val rule = dec.text
-                            declarationStrings += "\t$rule;\n"
-                        }
-                    }
-                    stringList.add(declarationStrings)
+                val selected = if (resolvedElements.size > 1) {
+                    dialogManager.getFileSelectionFromUser(resolvedElements as List<PsiElement>)
+                } else {
+                    resolvedElements[0]
                 }
+
+                var declarationStrings = ""
+                if (selected is CssClass) {
+                    val cssRuleSet = getCssRulesetFromFile(selected)
+                    cssRuleSet?.block?.declarations?.forEach { dec ->
+                        val rule = dec.text
+                        declarationStrings += "\t$rule;\n"
+                    }
+                }
+                stringList.add(declarationStrings)
             }
+        }
         return stringList
     }
 
-    private fun getCssRulesetFromFile(cssClassReference: CssClass, className: String): CssRuleset? {
+    private fun getCssRulesetFromFile(cssClassReference: CssClass): CssRuleset? {
         val cssFile = cssClassReference.containingFile
         var ruleSet: CssRuleset? = null
         if (cssFile is CssFile) {
@@ -121,7 +119,7 @@ internal class ConvertToStyledComponent : AnAction("Convert to a styled componen
             val rulesets = stylesheet.rulesets
             rulesets.forEach { rule ->
                 rule.selectors.forEach { sel ->
-                    if (sel.text == "." + className) ruleSet = rule
+                    if (sel.text == "." + cssClassReference.name) ruleSet = rule
                 }
             }
         }
