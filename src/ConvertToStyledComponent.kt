@@ -45,7 +45,8 @@ internal class ConvertToStyledComponent : AnAction("Convert to a styled componen
     }
 
     private fun replaceHtmlElementWithStyledTag(jsxElement: JSXmlLiteralExpressionImpl, classNames: List<String>) {
-        val newTagName = classNames.map { name -> name.capitalize() }.last()
+        val classNames = classNames.map { name -> convertToValidString(name) }
+        val newTagName = classNames.last()
         val classNameTagToDelete = getClassNameTag(jsxElement)
 
         fileWriter.renameHtmlTagAndDeleteClassTag(jsxElement, newTagName, classNameTagToDelete)
@@ -65,7 +66,7 @@ internal class ConvertToStyledComponent : AnAction("Convert to a styled componen
 
         var lastClassName = ""
         for (i in classNames.indices) {
-            val className = classNames[i].capitalize()
+            val className = convertToValidString(classNames[i])
             var extractedCss = ""
             if (i < extractedCssList.size) {
                 extractedCss = extractedCssList[i]
@@ -81,6 +82,13 @@ internal class ConvertToStyledComponent : AnAction("Convert to a styled componen
 
             lastClassName = className
         }
+    }
+
+    private fun convertToValidString(rawString: String): String {
+        val split = rawString.split("-", "_")
+        val map = split.map { s -> s.capitalize() }
+        val fold = map.fold("") { concat, s -> concat + s }
+        return fold
     }
 
     private fun getCssRulesAsBlockStringFrom(jsxElement: JSXmlLiteralExpressionImpl): List<String> {
