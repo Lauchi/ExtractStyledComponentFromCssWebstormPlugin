@@ -41,7 +41,7 @@ internal class ConvertToStyledComponent : AnAction("Convert to a styled componen
     private fun getClassNames(jsxElement: JSXmlLiteralExpressionImpl): List<String> {
         val classNameTag = getClassNameTag(jsxElement)
         val classNames = classNameTag?.value ?: return emptyList()
-        return classNames.replace("\'", "").replace("\"", "").split(" ")
+        return classNames.split(" ")
     }
 
     private fun replaceHtmlElementWithStyledTag(jsxElement: JSXmlLiteralExpressionImpl, classNames: List<String>) {
