@@ -5,18 +5,20 @@ import com.intellij.psi.css.CssClass
 
 class DialogManager(private val project: Project) {
 
-    fun getFileSelectionFromUser(resolvedElements: List<PsiElement>): Any {
+    fun getFileSelectionFromUser(resolvedElements: List<PsiElement>): Any? {
         val selectFromListDialog = SelectFromListDialog(project, resolvedElements.toTypedArray(),
-                SelectFromListDialog.ToStringAspect { string ->
-                    if (string is CssClass) {
-                        string.containingFile.virtualFile.name
+                SelectFromListDialog.ToStringAspect { cssClass ->
+                    if (cssClass is CssClass) {
+                        val projectFilePath = project.basePath
+                        cssClass.containingFile.virtualFile.path.replaceFirst(projectFilePath.toString(), "")
                     } else {
                         "no css File"
                     }
                 },
-                "Source", 1)
-        selectFromListDialog.showAndGet()
-        return selectFromListDialog.selection[0]
+                "Source", 0)
+        val showAndGet = selectFromListDialog.showAndGet()
+        return if (showAndGet) selectFromListDialog.selection[0]
+        else null
     }
 
 }
